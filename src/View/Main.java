@@ -1,6 +1,6 @@
 package View;
 
-import Model.Board;
+//import Model.Board;
 import Model.Game;
 
 import javax.swing.*;

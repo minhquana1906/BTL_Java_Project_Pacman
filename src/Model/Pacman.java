@@ -4,7 +4,7 @@ public class Pacman {
     //Define pacman's stats
     private int x, y;
     private int dx, dy;
-    private int speed = 6;
+    private int speed;
 
     public Pacman(int x, int y, int dx, int dy, int speed) {
         this.x = x;

@@ -1,6 +1,5 @@
 package Model;
 
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -8,19 +7,15 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
-
-public class Game extends JPanel implements ActionListener {
+public class Game extends JPanel implements ActionListener, Constrance {
     //main model
-    private Board board;
     private Pacman pacman;
     private Ghost ghosts;
 
     //game components
     private int lives;
     private int score;
-    private int levelSpeed;
-    private final int MAX_SPEED = 6;
-    private final int validSpeeds[] = {1, 2, 3, 4, 6, 8};
+    private int currentSpeed;
 
     //game control inputs
     private int req_dx, req_dy;
@@ -29,7 +24,7 @@ public class Game extends JPanel implements ActionListener {
     private boolean isDeath;
     private boolean inGame = false;
 
-    private final int MAX_GHOSTS = 12;
+//    private final int MAX_GHOSTS = 12;
     private int N_GHOSTS;
 
     private int[] dx,dy;
@@ -120,24 +115,22 @@ public class Game extends JPanel implements ActionListener {
 
     //TODO Init screen, board, ghosts, pacman
     private void initVariables(){
-        board = new Board();
-        pacman = new Pacman(0,0,0,0,6);
-        ghosts = new Ghost(0,0,0,0,6);
+//        board = new Board();
+        pacman = new Pacman(0,0,0,0,8);
+        ghosts = new Ghost(0,0,0,0,0);
         
         score = 0;
-        levelSpeed = 3;
+//        levelSpeed = 3;
         isDeath = false;
         inGame = false;
         d = new Dimension(400,400);
 
-        screenData = new short[board.getN_BLOCKS() * board.getN_BLOCKS()];
-//        board.setDimension(new Dimension(board.getSCREEN_SIZE(), board.getSCREEN_SIZE()));
-
+        screenData = new short[N_BLOCKS * N_BLOCKS];
 
         dx = new int[4];
         dy = new int[4];
         // Set speed by timer:
-        timer = new Timer(40, this);
+        timer = new Timer(SLEEP_TIME, this);
         timer.restart();
     }
 
@@ -145,14 +138,14 @@ public class Game extends JPanel implements ActionListener {
     public void initGame(){
         lives = 3;
         score = 0;
-        N_GHOSTS = 2;
-        levelSpeed = 3;
+        N_GHOSTS = 3;
+        currentSpeed = 3;
         initLevel();
     }
 
     //Init level
     private void initLevel(){
-        for(int i=0;i<board.getN_BLOCKS() * board.getN_BLOCKS();i++){
+        for(int i=0;i<N_BLOCKS * N_BLOCKS;i++){
             screenData[i] = levelData[i];
         }
         continueLevel();
@@ -176,7 +169,7 @@ public class Game extends JPanel implements ActionListener {
         g2d.setFont(new Font("Crackman", Font.BOLD, 14));
         String start = "Press SPACE button to start";
         g2d.setColor(new Color(254,192,1));
-        g2d.drawString(start, (board.getSCREEN_SIZE() - g2d.getFontMetrics().stringWidth(start)) / 2, board.getSCREEN_SIZE() / 2);
+        g2d.drawString(start, (SCREEN_SIZE - g2d.getFontMetrics().stringWidth(start)) / 2, SCREEN_SIZE / 2);
     }
 
     //TODO Draw score
@@ -184,11 +177,11 @@ public class Game extends JPanel implements ActionListener {
         g2d.setColor(Color.white);
         g2d.setFont(new Font("Crackman", Font.BOLD, 14));
         String s = "Score: " + score;
-        g2d.drawString(s, board.getSCREEN_SIZE() / 2 + 96, board.getSCREEN_SIZE() + 16);
+        g2d.drawString(s, SCREEN_SIZE / 2 + 96, SCREEN_SIZE + 16);
 
         // check lives cua pac man
         for(int i=0;i<lives;i++){
-            g2d.drawImage(heart, i * 28 + 8, board.getSCREEN_SIZE() + 1, this);
+            g2d.drawImage(heart, i * 28 + 8, SCREEN_SIZE + 1, this);
         }
     }
 
@@ -206,27 +199,28 @@ public class Game extends JPanel implements ActionListener {
         int random;
         for(int i=0;i<N_GHOSTS;i++){
             //init ghost's position
-            ghosts.setX(4 * board.getBLOCK_SIZE());
-            ghosts.setY(4 * board.getBLOCK_SIZE());
+            ghosts.setX(4 * BLOCK_SIZE);
+            ghosts.setY(4 * BLOCK_SIZE);
             ghosts.setDx(dx);
             ghosts.setDy(0);
             dx = - dx;
 
-            random = (int) (Math.random() * (levelSpeed + 1));
-            if(random > levelSpeed){
-                random = levelSpeed;
+            random = (int) (Math.random() * (currentSpeed + 1));
+            if(random > currentSpeed){
+                random = currentSpeed;
             }
-            ghosts.setSpeed(validSpeeds[random]);
+            ghosts.setSpeed(VALID_SPEEDS[random]);
 
         }
         //init pacman position
-        pacman.setX(7 * board.getBLOCK_SIZE());
-        pacman.setY(11 * board.getBLOCK_SIZE());
+        pacman.setX(7 * BLOCK_SIZE);
+        pacman.setY(11 * BLOCK_SIZE);
 
         //pacman direction
-        pacman.setX(0);
-        pacman.setY(0);
-        req_dx = req_dy = 0;
+        pacman.setDx(0);
+        pacman.setDy(0);
+        req_dx = 0;
+        req_dy = 0;
         isDeath = false;
     }
 
@@ -236,10 +230,11 @@ public class Game extends JPanel implements ActionListener {
         short ch;
 
         //TODO xem lai cong thuc tinh
-        if(pacman.getX() % board.getBLOCK_SIZE() == 0 && pacman.getY() % board.getBLOCK_SIZE() == 0){
-            pos = pacman.getX() / board.getBLOCK_SIZE() + board.getN_BLOCKS() * (short) (pacman.getY() / board.getBLOCK_SIZE());
+        if(pacman.getX() % BLOCK_SIZE == 0 && pacman.getY() % BLOCK_SIZE == 0){
+            pos = (pacman.getX() / BLOCK_SIZE) + (N_BLOCKS * (pacman.getY() / BLOCK_SIZE));
             ch = screenData[pos];
 
+//            System.out.println("pacmanx: " + pacman.getX() + " pacmany: " + pacman.getY() + " pos: " + pos + " ch: " + ch);
             /*
                 0 - blue
                 1 - left border
@@ -251,50 +246,46 @@ public class Game extends JPanel implements ActionListener {
             //TODO Check if pacman can move to the next position
             //eat white dots
             if((ch & 16) != 0){
-                screenData[pos] = (short) (ch & 15);
+                screenData[pos] = (short) (ch & 15);    //set white dots to 0
+                System.out.println(screenData[pos]);
                 score++;
             }
 
             // check if pacman hit the wall (if not stuck then do)
-            if(req_dx != 0 && req_dy != 0){
+            if(req_dx != 0 || req_dy != 0){
                 if(!((req_dx == -1 && req_dy == 0 && (ch & 1) != 0)
                 || (req_dx == 1 && req_dy == 0 && (ch & 4) != 0)
                 || (req_dx == 0 && req_dy == -1 && (ch & 2) != 0)
                 || (req_dx == 0 && req_dy == 1 && (ch & 8) != 0))){
-                    pacman.setX(req_dx);
-                    pacman.setY(req_dy);
+                    pacman.setDx(req_dx);
+                    pacman.setDy(req_dy);
                 }
             }
-            // Stuck (hit the wall)
-//            if((req_dx == -1 && req_dy == 0 && (ch & 1) != 0)
-//                    || (req_dx == 1 && req_dy == 0 && (ch & 4) != 0)
-//                    || (req_dx == 0 && req_dy == -1 && (ch & 2) != 0)
-//                    || (req_dx == 0 && req_dy == 1 && (ch & 8) != 0)){
-//                pacman.setX(0);
-//                pacman.setY(0);
-//            }
-            if((pacman.getX() == -1 && pacman.getY() == 0 && (ch & 1) != 0)
-                    || (pacman.getX() == 1 && pacman.getY() == 0 && (ch & 4) != 0)
-                    || (pacman.getX() == 0 && pacman.getY() == -1 && (ch & 2) != 0)
-                    || (pacman.getX() == 0 && pacman.getY() == 1 && (ch & 8) != 0)) {
-                pacman.setX(0);
-                pacman.setY(0);
+            // Stuck (hit the wall) then stop
+            if((pacman.getDx() == -1 && pacman.getDy() == 0 && (ch & 1) != 0)
+                    || (pacman.getDx() == 1 && pacman.getDy() == 0 && (ch & 4) != 0)
+                    || (pacman.getDx() == 0 && pacman.getDy() == -1 && (ch & 2) != 0)
+                    || (pacman.getDx() == 0 && pacman.getDy() == 1 && (ch & 8) != 0)) {
+                pacman.setDx(0);
+                pacman.setDy(0);
             }
+            //cheat di xuyen vat the :)
         }
-        pacman.setX(pacman.getX() + pacman.getX() * pacman.getSpeed());
-        pacman.setY(pacman.getY() + pacman.getY() * pacman.getSpeed());
+        pacman.setX(pacman.getX() + pacman.getDx() * pacman.getSpeed());
+        pacman.setY(pacman.getY() + pacman.getDy() * pacman.getSpeed());
+
     }
 
     //TODO Draw pacman
     private void drawPacman(Graphics2D g2d){
         if(req_dx == -1){
-            g2d.drawImage(pacmanLeft, pacman.getX() + 1, pacman.getY() + 1, this);
+            g2d.drawImage(pacmanLeft, pacman.getX(), pacman.getY(), this);
         } else if(req_dx == 1){
-            g2d.drawImage(pacmanRight, pacman.getX() + 1, pacman.getY() + 1, this);
+            g2d.drawImage(pacmanRight, pacman.getX(), pacman.getY(), this);
         } else if (req_dy == -1) {
-            g2d.drawImage(pacmanUp, pacman.getX() + 1, pacman.getY() + 1, this);
+            g2d.drawImage(pacmanUp, pacman.getX(), pacman.getY(), this);
         } else{
-            g2d.drawImage(pacmanDown, pacman.getX() + 1, pacman.getY() + 1, this);
+            g2d.drawImage(pacmanDown, pacman.getX(), pacman.getY(), this);
         }
     }
 
@@ -304,8 +295,8 @@ public class Game extends JPanel implements ActionListener {
         int count;
         for(int i=0;i<N_GHOSTS;i++){
             //TODO xem lai cong thuc tinh
-            if(ghosts.getX() % board.getBLOCK_SIZE() == 0 && ghosts.getY() % board.getBLOCK_SIZE() == 0){
-                pos = ghosts.getX() / board.getBLOCK_SIZE() + board.getN_BLOCKS() * (int) (ghosts.getY() / board.getBLOCK_SIZE());
+            if(ghosts.getX() % BLOCK_SIZE == 0 && ghosts.getY() % BLOCK_SIZE == 0){
+                pos = ghosts.getX() / BLOCK_SIZE + N_BLOCKS * (int) (ghosts.getY() / BLOCK_SIZE);
                 //kiem tra lieu ghost co dang o center cua 1 block hay khong
                 count = 0;
 
@@ -382,12 +373,13 @@ public class Game extends JPanel implements ActionListener {
         boolean finished = true;
 
         // duyet vong lap while t o dau tien den o cuoi cung neu so bit voi 48 != 0 thi la chua an het white dots
-        while(i < board.getN_BLOCKS() * board.getN_BLOCKS() && finished){
+        while(i < N_BLOCKS * N_BLOCKS && finished){
             if((screenData[i]) != 0){  //48 = 16 + 32 (white dots + blue)
                 finished = false;
             }
             i++;    //check tiep den o tiep theo
         }
+
 
         //chuyen sang next level
         if(finished){
@@ -395,8 +387,8 @@ public class Game extends JPanel implements ActionListener {
             if(N_GHOSTS < MAX_GHOSTS){
                 N_GHOSTS++;
             }
-            if(levelSpeed < MAX_SPEED){
-                levelSpeed++;
+            if(currentSpeed < MAX_SPEED){
+                currentSpeed++;
             }
             initLevel();
         }
@@ -407,35 +399,35 @@ public class Game extends JPanel implements ActionListener {
         int i =0;
         int x, y;
 
-        for(y =0; y < board.getSCREEN_SIZE(); y+= board.getBLOCK_SIZE()){
-            for(x=0; x < board.getSCREEN_SIZE(); x+=board.getBLOCK_SIZE()){
+        for(y =0; y < SCREEN_SIZE; y+= BLOCK_SIZE){
+            for(x=0; x < SCREEN_SIZE; x+=BLOCK_SIZE){
 
                 g2d.setColor(new Color(16,39,184));
                 g2d.setStroke(new BasicStroke(5));      //set do day cua duong vien
 
                 //paint blue block
                 if(levelData[i] == 0){
-                    g2d.fillRect(x,y,board.getBLOCK_SIZE(), board.getBLOCK_SIZE());
+                    g2d.fillRect(x,y,BLOCK_SIZE, BLOCK_SIZE);
                 }
 
                 //paint left border
                 if((screenData[i] & 1) != 0){
-                    g2d.drawLine(x, y, x, y + board.getBLOCK_SIZE() - 1);
+                    g2d.drawLine(x, y, x, y + BLOCK_SIZE - 1);
                 }
 
                 //paint top border
                 if((screenData[i] & 2) != 0){
-                    g2d.drawLine(x, y, x + board.getBLOCK_SIZE() - 1, y);
+                    g2d.drawLine(x, y, x + BLOCK_SIZE - 1, y);
                 }
 
                 //paint right border
                 if((screenData[i] & 4) != 0){
-                    g2d.drawLine(x + board.getBLOCK_SIZE() - 1, y, x + board.getBLOCK_SIZE() - 1, y + board.getBLOCK_SIZE() - 1);
+                    g2d.drawLine(x + BLOCK_SIZE - 1, y, x + BLOCK_SIZE - 1, y + BLOCK_SIZE - 1);
                 }
 
                 //paint bottom border
                 if((screenData[i] & 8) != 0){
-                    g2d.drawLine(x,y + board.getBLOCK_SIZE() - 1,x + board.getBLOCK_SIZE() - 1, y + board.getBLOCK_SIZE() - 1);
+                    g2d.drawLine(x,y + BLOCK_SIZE - 1,x + BLOCK_SIZE - 1, y + BLOCK_SIZE - 1);
                 }
 
                 //paint white dots
@@ -496,6 +488,7 @@ public class Game extends JPanel implements ActionListener {
                 if (key == KeyEvent.VK_SPACE) {
                     inGame = true;
                     initGame();
+                    repaint();
                 }
             }
         }
